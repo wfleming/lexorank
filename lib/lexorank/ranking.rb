@@ -29,7 +29,15 @@ class Lexorank::Ranking
     end
   end
 
-  def move_to(instance, position, **options)
+  def scoped_collection(instance)
+    collection = record_class.ranked
+    if group_by.present?
+      collection = collection.where("#{group_by}": instance.send(group_by))
+    end
+    collection
+  end
+
+  def move_to(instance, position = nil, **options)
     if block_given? && advisory_locks_enabled?
       return with_lock_if_enabled(instance, **options.fetch(:advisory_lock, {})) do
         move_to(instance, position, **options)
@@ -37,10 +45,7 @@ class Lexorank::Ranking
       end
     end
 
-    collection = record_class.ranked
-    if group_by.present?
-      collection = collection.where("#{group_by}": instance.send(group_by))
-    end
+    collection = scoped_collection(instance)
 
     # exceptions:
     #   move to the beginning (aka move to position 0)
@@ -48,12 +53,22 @@ class Lexorank::Ranking
     # when moving to the end of the collection the offset and limit statement automatically handles
     # that 'after' is nil which is the same like [collection.last, nil]
     before, after =
-      if position == :last
+      if position.nil?
+        if options.include?(:before)
+          resolve_relative_record_position(instance, :before, options[:before])
+        elsif options.include?(:after)
+          resolve_relative_record_position(instance, :after, options[:after])
+        else
+          raise ArgumentError.new("Static or relative position must be specified")
+        end
+      elsif position == :last
         [collection.last, nil]
       elsif position.zero?
         [nil, collection.first]
-      else
+      elsif Integer === position
         collection.where.not(id: instance.id).offset(position - 1).limit(2)
+      else
+        raise ArgumentError.new("Invalid position #{position}")
       end
 
     # If position >= collection.size both `before` and `after` will be nil. In this case
@@ -106,12 +121,43 @@ class Lexorank::Ranking
 
   private
 
+  def record_before(instance)
+    scoped_collection(instance).unscope(:order).ranked(direction: :desc).where("#{field} < ?", instance.rank).first
+  end
+
+  def record_after(instance)
+    scoped_collection(instance).where("#{field} > ?", instance.rank).first
+  end
+
   def process_group_by_column_name(name)
     # This requires rank! to be after the specific association
     if name && (association = record_class.reflect_on_association(name))
       association.foreign_key.to_sym
     else
       name
+    end
+  end
+
+  def resolve_relative_record_position(instance, direction, relative_record)
+    if relative_record.nil?
+      if direction == :before
+        return [scoped_collection(instance).last, nil]
+      else
+        return [nil, scoped_collection(instance).first]
+      end
+    end
+
+    relative_record =
+      if relative_record.is_a?(self.record_class)
+        relative_record
+      else
+        scoped_collection(instance).find(relative_record)
+      end
+
+    if direction == :before
+      [record_before(relative_record), relative_record]
+    else
+      [relative_record, record_after(relative_record)]
     end
   end
 end

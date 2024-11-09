@@ -106,6 +106,10 @@ page = Page.first
 # Moves this page instance to the second position
 page.move_to(1)
 
+# Records can be positioned relative to other records
+page.move_to(before: other_page)
+page.move_to(after: other_page.id)
+
 # Alias to page.move_to(0)
 page.move_to_top
 ```

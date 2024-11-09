@@ -34,7 +34,7 @@ module Lexorank::Rankable
       self.class.lexorank_ranking.move_to(self, ...)
     end
 
-    def move_to!(position, **options)
+    def move_to!(position = nil, **options)
       move_to(position, **options) do
         save
       end
