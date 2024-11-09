@@ -56,6 +56,46 @@ class RankingTest < Minitest::Test
     assert_equal [page_2, page_3, page_1], Page.ranked
   end
 
+  should 'move to relative position :before' do
+    page_1, page_2, page_3 = create_sample_pages
+
+    # move relative to record
+    page_3.move_to!(before: page_2)
+    assert_equal [page_1, page_3, page_2], Page.ranked
+
+    # move relative to id
+    page_2.move_to!(before: page_3.id)
+    assert_equal [page_1, page_2, page_3], Page.ranked
+
+    # move before: first item works
+    page_2.move_to!(before: page_1)
+    assert_equal [page_2, page_1, page_3], Page.ranked
+
+    # move before: nil behaves like move_to_bottom
+    page_2.move_to!(before: nil)
+    assert_equal [page_1, page_3, page_2], Page.ranked
+  end
+
+  should 'move to relative position :after' do
+    page_1, page_2, page_3 = create_sample_pages
+
+    # move relative to record
+    page_1.move_to!(after: page_2)
+    assert_equal [page_2, page_1, page_3], Page.ranked
+
+    # move relative to id
+    page_3.move_to!(after: page_2.id)
+    assert_equal [page_2, page_3, page_1], Page.ranked
+
+    # move after: last item works
+    page_2.move_to!(after: page_1)
+    assert_equal [page_3, page_1, page_2], Page.ranked
+
+    # move after: nil behaves like move_to_top
+    page_2.move_to!(after: nil)
+    assert_equal [page_2, page_3, page_1], Page.ranked
+  end
+
   should 'be able to use custom ranking column' do
     class Page1 < Base
       self.table_name = 'pages'
