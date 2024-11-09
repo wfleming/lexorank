@@ -21,6 +21,7 @@ require 'models/base'
 require 'models/page'
 require 'models/paragraph'
 require 'models/grouped_paragraph'
+require 'models/note'
 
 class Minitest::Test
   include Shoulda::Context::DSL
