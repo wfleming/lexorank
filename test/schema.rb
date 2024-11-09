@@ -27,4 +27,13 @@ ActiveRecord::Schema.define(version: 2020_10_02_124236) do
     t.index ["rank", "page_id"], name: "index_pages_on_rank_and_page_id", unique: true
     t.index ["page_id"], name: "index_pages_on_resource_id"
   end
+
+  create_table "notes", force: :cascade do |t|
+    t.string "noted_type", null: false
+    t.bigint "noted_id", null: false
+    t.string "rank", collation: collation_by_db
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["noted_type", "noted_id", "rank"], name: "index_notes_on_noted_and_rank", unique: true
+  end
 end

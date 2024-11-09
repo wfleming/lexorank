@@ -141,7 +141,7 @@ This is the entry point to use lexorank in your model.
 
 Options:
 * `field`: Allows you to pass a custom field which is being used to store the models rank. (defaults to `:rank`)
-* `group_by`: Makes it possible to split model ordering into groups by a specific column. [Learn more](#associations-and-grouping)
+* `group_by`: Makes it possible to split model ordering into groups by specific columns. [Learn more](#associations-and-grouping)
 * `advisory_lock`: The advisory lock configuration. [Learn more](#locking)
 
 </details>
@@ -242,12 +242,12 @@ end
 When moving a paragraph via the [instance methods](#instance-methods) only paragraphs of the model's page will be considered.
 Please keep in mind that lexorank can only find the association when you put `rank!` after the association definition.
 
-Alternatively, you can supply the column directly:
+Alternatively, you can supply the column or columns directly:
 
 ```ruby
 require 'lexorank/rankable'
 class Paragraph < ActiveRecord::Base
-  rank!(group_by: :page_id)
+  rank!(group_by: [:page_id])
   belongs_to :page
 end
 ```

@@ -21,14 +21,14 @@ class GroupByTest < ActiveSupport::TestCase
   end
 
   should 'resolve attribute names' do
-    assert_equal :page_id, GroupedParagraph.lexorank_ranking.group_by
+    assert_equal [:page_id], GroupedParagraph.lexorank_ranking.group_by
 
     class Paragraph2 < Base
       self.table_name = 'paragraphs'
       belongs_to :page
       rank!(group_by: :page)
     end
-    assert_equal :page_id, Paragraph2.lexorank_ranking.group_by
+    assert_equal [:page_id], Paragraph2.lexorank_ranking.group_by
   end
 
   describe 'moving to a different group' do
@@ -72,6 +72,48 @@ class GroupByTest < ActiveSupport::TestCase
 
       expected = [paragraph_1, paragraph_2, paragraph_3, new_paragraph]
       assert_equal expected, GroupedParagraph.where(page_id: page_1.id).ranked
+    end
+  end
+
+  describe 'multi-column group by' do
+    describe 'via explicit list of columns' do
+      it "resolves column names" do
+        assert_equal [:noted_type, :noted_id], SimpleNote.lexorank_ranking.group_by
+      end
+
+      should 'correctly distinguish scopes' do
+        page = Page.create!(id: 42)
+        paragraph = Paragraph.create!(id: 42, page: page)
+        page_note_1 = SimpleNote.create!(noted_type: "Page", noted_id: page.id).tap(&:move_to_end!)
+        page_note_2 = SimpleNote.create!(noted_type: "Page",noted_id: page.id).tap(&:move_to_end!)
+        paragraph_note_1 = SimpleNote.create!(noted_type: "Paragraph", noted_id: paragraph.id).tap(&:move_to_end!)
+        paragraph_note_2 = SimpleNote.create!(noted_type: "Paragraph", noted_id: paragraph.id).tap(&:move_to_end!)
+
+        assert_equal [page_note_1, page_note_2], SimpleNote.where(noted_type: "Page", noted_id: page.id).ranked
+        assert_equal [paragraph_note_1, paragraph_note_2], SimpleNote.where(noted_type: "Paragraph", noted_id: paragraph.id).ranked
+        assert_equal page_note_1.rank, paragraph_note_1.rank
+        assert_equal page_note_2.rank, paragraph_note_2.rank
+      end
+    end
+
+    describe 'via polymorphic belongs_to' do
+      it "resolves column names" do
+        assert_equal [:noted_type, :noted_id], PolymorphicNote.lexorank_ranking.group_by
+      end
+
+      should 'correctly distinguish scopes' do
+        page = Page.create!(id: 42)
+        paragraph = Paragraph.create!(id: 42, page: page)
+        page_note_1 = PolymorphicNote.create!(noted: page).tap(&:move_to_end!)
+        page_note_2 = PolymorphicNote.create!(noted: page).tap(&:move_to_end!)
+        paragraph_note_1 = PolymorphicNote.create!(noted: paragraph).tap(&:move_to_end!)
+        paragraph_note_2 = PolymorphicNote.create!(noted: paragraph).tap(&:move_to_end!)
+
+        assert_equal [page_note_1, page_note_2], PolymorphicNote.where(noted: page).ranked
+        assert_equal [paragraph_note_1, paragraph_note_2], PolymorphicNote.where(noted: paragraph).ranked
+        assert_equal page_note_1.rank, paragraph_note_1.rank
+        assert_equal page_note_2.rank, paragraph_note_2.rank
+      end
     end
   end
 end

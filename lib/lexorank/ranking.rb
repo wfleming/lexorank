@@ -8,7 +8,7 @@ class Lexorank::Ranking
   def initialize(record_class:, field:, group_by:, advisory_lock:)
     @record_class = record_class
     @field = field
-    @group_by = process_group_by_column_name(group_by)
+    @group_by = process_group_by_column_names(group_by)
     @advisory_lock_config = { enabled: record_class.respond_to?(:with_advisory_lock) }.merge(advisory_lock)
   end
 
@@ -32,7 +32,7 @@ class Lexorank::Ranking
   def scoped_collection(instance)
     collection = record_class.ranked
     if group_by.present?
-      collection = collection.where("#{group_by}": instance.send(group_by))
+      collection = collection.where(Hash[*group_by.flat_map { |col| [col, instance.send(col)] }])
     end
     collection
   end
@@ -109,7 +109,7 @@ class Lexorank::Ranking
     else
       "#{record_class.table_name}_update_#{field}".tap do |name|
         if group_by.present?
-          name << "_group_#{instance.send(group_by)}"
+          name << "_group_" << group_by.map { |col| instance.send(col).to_s }.join("_")
         end
       end
     end
@@ -129,12 +129,16 @@ class Lexorank::Ranking
     scoped_collection(instance).where("#{field} > ?", instance.rank).first
   end
 
-  def process_group_by_column_name(name)
-    # This requires rank! to be after the specific association
-    if name && (association = record_class.reflect_on_association(name))
-      association.foreign_key.to_sym
-    else
-      name
+  def process_group_by_column_names(names)
+    # This requires rank! to be after the association if names is an association name
+    if names.present?
+      Array.wrap(names).flat_map do |name|
+        if (association = record_class.reflect_on_association(name))
+          [association.foreign_type&.to_sym, association.foreign_key.to_sym].compact
+        else
+          name
+        end
+      end
     end
   end
 
