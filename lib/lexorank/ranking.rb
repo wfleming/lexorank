@@ -29,10 +29,15 @@ class Lexorank::Ranking
     end
   end
 
+  def group_by_vals(instance)
+    return nil unless group_by.present?
+    Hash[*group_by.flat_map { |col| [col, instance.send(col)] }]
+  end
+
   def scoped_collection(instance)
     collection = record_class.ranked
     if group_by.present?
-      collection = collection.where(Hash[*group_by.flat_map { |col| [col, instance.send(col)] }])
+      collection = collection.where(group_by_vals(instance))
     end
     collection
   end

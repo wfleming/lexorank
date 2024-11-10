@@ -261,6 +261,19 @@ Retrieving data in a grouped manner is as simple as utilizing built-in ActiveRec
 Page.first.paragraphs.ranked
 ```
 
+## Rebalancing
+
+Lists where existing items are moved around a lot can result in large rank values that can impact performance. It's recommended that you rerank lists when the maximum length of a rank column exceeds 128 characters.
+
+```ruby
+# This will rebalance the entire table
+Page.rebalance_rank!
+# This will rebalance the entire grouped list from an instance in the list
+Paragraph.first.rebalance_rank_group!
+# You can also pass the group by values to rebalance to the class
+Paragraph.rebalance_rank!(page_id: 1)
+```
+
 ## Locking
 
 Since version 0.2.0 lexorank ships with advisory locking by default. Advisory locks are a locking mechanism on the database level that ensures that only one record in a collection can change their rank at a time. This is important to prevent two records being assigned the same rank.
@@ -374,7 +387,6 @@ value between two more different ranks:    0.000042   0.000000   0.000042 (  0.0
 
 ## Planned Features
 
-- [ ] task to rebalance ranks
 - [ ] method to output information about current balancing situation (number of ranked items, longest rank value, ...)
 - [ ] ...
 

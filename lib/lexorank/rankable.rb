@@ -2,6 +2,7 @@
 
 require 'lexorank'
 require 'lexorank/ranking'
+require 'lexorank/rebalance'
 require 'active_support/concern'
 
 module Lexorank::Rankable
@@ -18,6 +19,10 @@ module Lexorank::Rankable
         scope :ranked, ->(direction: :asc) { where.not("#{lexorank_ranking.field}": nil).order("#{lexorank_ranking.field}": direction) }
         include InstanceMethods
       end
+    end
+
+    def rebalance_rank!(group_vals = nil)
+      Lexorank::Rebalance.new(ranking: lexorank_ranking, group_vals: group_vals).execute
     end
   end
 
@@ -54,6 +59,10 @@ module Lexorank::Rankable
 
     def no_rank?
       !send(self.class.lexorank_ranking.field)
+    end
+
+    def rebalance_rank_group!
+      self.class.rebalance_rank!(self.class.lexorank_ranking.group_by_vals(self))
     end
   end
 end
