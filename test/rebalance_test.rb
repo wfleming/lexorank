@@ -14,8 +14,8 @@ class RebalanceTest < ActiveSupport::TestCase
     Page.rebalance_rank!
 
     updated_pages = Page.ranked
+    assert_equal pages.to_a, updated_pages.to_a
     pages.zip(updated_pages).each do |orig, updated|
-      assert_equal orig.id, updated.id, "record should be in same position"
       refute_equal orig.rank, updated.rank, "rank should have changed"
     end
   end
@@ -34,11 +34,11 @@ class RebalanceTest < ActiveSupport::TestCase
 
     pg2_paragraphs[0].rebalance_rank_group!
 
-    assert_equal pg1_paragraphs, Paragraph.where(page: page_1).ranked
+    assert_equal pg1_paragraphs.to_a, Paragraph.where(page: page_1).ranked.to_a
 
     updated_pg2_paragraphs = Paragraph.where(page: page_2).ranked
+    assert_equal pg2_paragraphs.to_a, updated_pg2_paragraphs.to_a
     pg2_paragraphs.zip(updated_pg2_paragraphs).each do |orig, updated|
-      assert_equal orig.id, updated.id, "record should be in same position"
       refute_equal orig.rank, updated.rank, "rank should have changed"
     end
   end
